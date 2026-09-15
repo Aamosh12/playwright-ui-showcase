@@ -1,18 +1,49 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
+import dotenv from "dotenv";
+import path from "path";
+import { config as fallback } from "./config/testConfig.ts";
 
 /**
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
  */
-// import dotenv from 'dotenv';
-// import path from 'path';
-// dotenv.config({ path: path.resolve(__dirname, '.env') });
+dotenv.config({ path: path.resolve(__dirname, ".env") });
 
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
+
+const allowed = ["QA", "PROD"] as const;
+
+type Environment = (typeof allowed)[number];
+
+const env = process.env.ENV;
+if (env && !allowed.includes(env as Environment)) {
+  console.warn(
+    `Environment '${env}' is invalid. Allowed values: QA, PROD. Defaulting to QA.`,
+  );
+}
+
+const ENV: Environment =
+  env && allowed.includes(env as Environment) ? (env as Environment) : "QA";
+const baseUrlMap: Record<Environment, string | undefined> = {
+  PROD: process.env.BASE_URL_PROD || fallback.PROD,
+  QA: process.env.BASE_URL_QA || fallback.QA,
+};
+
+const apiBaseUrlMap: Record<Environment, string | undefined> = {
+  PROD: process.env.API_BASE_URL_PROD || fallback.API_PROD,
+  QA: process.env.API_BASE_URL_QA || fallback.API_QA,
+};
+
+const BASE_URL = baseUrlMap[ENV] || "";
+const API_BASE_URL = apiBaseUrlMap[ENV] || "";
+
+export { ENV, BASE_URL, API_BASE_URL };
+
 export default defineConfig({
-  testDir: './tests',
+  globalSetup: "./utils/global-setup.ts",
+  testDir: "./tests",
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -22,31 +53,34 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
+  reporter: "html",
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */
     // baseURL: 'http://localhost:3000',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
+    trace: "on-first-retry",
+    testIdAttribute: "data-test",
+    baseURL: BASE_URL,
+  
   },
 
   /* Configure projects for major browsers */
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
     },
 
     {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
     },
 
     {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      name: "webkit",
+      use: { ...devices["Desktop Safari"] },
     },
 
     /* Test against mobile viewports. */
