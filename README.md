@@ -68,7 +68,7 @@ playwright-automation/
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/playwright-automation.git
+   git clone https://github.com/Aamosh12/playwright-ui-showcase
    cd playwright-automation
    ```
 
